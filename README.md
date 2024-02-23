@@ -1,4 +1,4 @@
-# Optimistic token voting plugin for OSx
+# Lock to veto plugin for OSx
 
 This OSx plugin is an instance of the Optimistic Dual Governance model, where selected groups or members can submit proposals and token holders can veto them. Proposals that have not been vetoed after a period of time can be eventually executed by anyone. 
 
