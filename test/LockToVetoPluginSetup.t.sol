@@ -588,23 +588,6 @@ contract LockToVetoPluginSetupTest is Test {
             _preparedSetupData.permissions[4].permissionId,
             keccak256("PROPOSER_PERMISSION")
         );
-
-        // minting
-        assertEq(
-            uint256(_preparedSetupData.permissions[5].operation),
-            uint256(PermissionLib.Operation.Grant),
-            "Incorrect operation"
-        );
-        assertEq(
-            _preparedSetupData.permissions[5].where,
-            _preparedSetupData.helpers[0]
-        );
-        assertEq(_preparedSetupData.permissions[5].who, address(dao));
-        assertEq(_preparedSetupData.permissions[5].condition, address(0));
-        assertEq(
-            _preparedSetupData.permissions[5].permissionId,
-            keccak256("MINT_PERMISSION")
-        );
     }
 
     function test_PrepareUninstallationReturnsTheProperPermissions_1() public {
@@ -636,7 +619,7 @@ contract LockToVetoPluginSetupTest is Test {
 
         assertEq(
             _permissionChanges.length,
-            4,
+            3,
             "Incorrect permission changes length"
         );
         // 1
@@ -677,28 +660,6 @@ contract LockToVetoPluginSetupTest is Test {
         assertEq(
             _permissionChanges[2].permissionId,
             keccak256("EXECUTE_PERMISSION")
-        );
-        // minting 1
-        assertEq(
-            uint256(_permissionChanges[3].operation),
-            uint256(PermissionLib.Operation.Revoke),
-            "Incorrect operation"
-        );
-        assertEq(
-            _permissionChanges[3].where,
-            address(governanceERC20Base),
-            "Incorrect where"
-        );
-        assertEq(_permissionChanges[3].who, address(dao), "Incorrect who");
-        assertEq(
-            _permissionChanges[3].condition,
-            address(0),
-            "Incorrect condition"
-        );
-        assertEq(
-            _permissionChanges[3].permissionId,
-            keccak256("MINT_PERMISSION"),
-            "Incorrect permission"
         );
     }
 
@@ -736,7 +697,7 @@ contract LockToVetoPluginSetupTest is Test {
 
         assertEq(
             _permissionChanges.length,
-            4,
+            3,
             "Incorrect permission changes length"
         );
         // 1
@@ -777,28 +738,6 @@ contract LockToVetoPluginSetupTest is Test {
         assertEq(
             _permissionChanges[2].permissionId,
             keccak256("EXECUTE_PERMISSION")
-        );
-        // minting 1
-        assertEq(
-            uint256(_permissionChanges[3].operation),
-            uint256(PermissionLib.Operation.Revoke),
-            "Incorrect operation"
-        );
-        assertEq(
-            _permissionChanges[3].where,
-            _preparedSetupData.helpers[0],
-            "Incorrect where"
-        );
-        assertEq(_permissionChanges[3].who, address(dao), "Incorrect who");
-        assertEq(
-            _permissionChanges[3].condition,
-            address(0),
-            "Incorrect condition"
-        );
-        assertEq(
-            _permissionChanges[3].permissionId,
-            keccak256("MINT_PERMISSION"),
-            "Incorrect permission"
         );
     }
 
@@ -837,55 +776,6 @@ contract LockToVetoPluginSetupTest is Test {
 
         assertEq(_token.name(), "New Token");
         assertEq(_token.symbol(), "NTK");
-    }
-
-    function test_WrapsAnExistingToken() public {
-        // Wrap existing token
-        ERC20Mock _originalToken = new ERC20Mock();
-        _originalToken.mint(address(0x1234), 100);
-        _originalToken.mint(address(0x5678), 200);
-        assertEq(_originalToken.balanceOf(address(0x1234)), 100);
-        assertEq(_originalToken.balanceOf(address(0x5678)), 200);
-
-        tokenSettings = LockToVetoPluginSetup.TokenSettings({
-            addr: address(_originalToken),
-            name: "Wrapped Mock Token",
-            symbol: "wMTK"
-        });
-        bytes memory installationParams = pluginSetup.encodeInstallationParams(
-            votingSettings,
-            tokenSettings,
-            mintSettings,
-            proposers
-        );
-        (
-            ,
-            IPluginSetup.PreparedSetupData memory _preparedSetupData
-        ) = pluginSetup.prepareInstallation(address(dao), installationParams);
-
-        GovernanceWrappedERC20 _wrappedToken = GovernanceWrappedERC20(
-            _preparedSetupData.helpers[0]
-        );
-        assertEq(_wrappedToken.balanceOf(address(0x1234)), 0);
-        assertEq(_wrappedToken.balanceOf(address(0x5678)), 0);
-        assertEq(_wrappedToken.balanceOf(address(0x0)), 0);
-
-        assertEq(_wrappedToken.name(), "Wrapped Mock Token");
-        assertEq(_wrappedToken.symbol(), "wMTK");
-
-        vm.startPrank(address(0x1234));
-        _originalToken.approve(address(_wrappedToken), 100);
-        _wrappedToken.depositFor(address(0x1234), 100);
-
-        vm.startPrank(address(0x5678));
-        _originalToken.approve(address(_wrappedToken), 200);
-        _wrappedToken.depositFor(address(0x5678), 200);
-
-        assertEq(_wrappedToken.balanceOf(address(0x1234)), 100);
-        assertEq(_wrappedToken.balanceOf(address(0x5678)), 200);
-        assertEq(_wrappedToken.balanceOf(address(0x0)), 0);
-
-        vm.stopPrank();
     }
 
     function test_UsesAnExistingGovernanceERC20Token() public {

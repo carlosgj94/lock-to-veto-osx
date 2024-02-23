@@ -184,21 +184,6 @@ contract LockToVetoPluginSetup is PluginSetup {
             }
         }
 
-        if (tokenSettings.addr == address(0)) {
-            bytes32 tokenMintPermission = GovernanceERC20(token)
-                .MINT_PERMISSION_ID();
-
-            // The DAO can mint ERC20 tokens
-            permissions[3 + proposers.length] = PermissionLib
-                .MultiTargetPermission({
-                    operation: PermissionLib.Operation.Grant,
-                    where: token,
-                    who: _dao,
-                    condition: PermissionLib.NO_CONDITION,
-                    permissionId: tokenMintPermission
-                });
-        }
-
         preparedSetupData.helpers = helpers;
         preparedSetupData.permissions = permissions;
     }
@@ -222,15 +207,7 @@ contract LockToVetoPluginSetup is PluginSetup {
         // does not follow the GovernanceERC20 and GovernanceWrappedERC20 standard.
         address token = _payload.currentHelpers[0];
 
-        bool[] memory supportedIds = _getTokenInterfaceIds(token);
-
-        bool isGovernanceERC20 = supportedIds[0] &&
-            supportedIds[1] &&
-            !supportedIds[2];
-
-        permissions = new PermissionLib.MultiTargetPermission[](
-            isGovernanceERC20 ? 4 : 3
-        );
+        permissions = new PermissionLib.MultiTargetPermission[](3);
 
         // Set permissions to be Revoked.
         permissions[0] = PermissionLib.MultiTargetPermission({
@@ -260,19 +237,6 @@ contract LockToVetoPluginSetup is PluginSetup {
         });
 
         // Note: It no longer matters if proposers can still create proposals
-
-        // Revocation of permission is necessary only if the deployed token is GovernanceERC20,
-        // as GovernanceWrapped does not possess this permission. Only return the following
-        // if it's type of GovernanceERC20, otherwise revoking this permission wouldn't have any effect.
-        if (isGovernanceERC20) {
-            permissions[3] = PermissionLib.MultiTargetPermission({
-                operation: PermissionLib.Operation.Revoke,
-                where: token,
-                who: _dao,
-                condition: PermissionLib.NO_CONDITION,
-                permissionId: GovernanceERC20(token).MINT_PERMISSION_ID()
-            });
-        }
     }
 
     /// @inheritdoc IPluginSetup
