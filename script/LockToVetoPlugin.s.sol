@@ -3,9 +3,11 @@ pragma solidity ^0.8.13;
 
 import {Script, console2} from "forge-std/Script.sol";
 import {LockToVetoPluginSetup} from "../src/LockToVetoPluginSetup.sol";
+import {LockToVetoPlugin} from "../src/LockToVetoPlugin.sol";
 import {GovernanceERC20} from "@aragon/osx/token/ERC20/governance/GovernanceERC20.sol";
 import {GovernanceWrappedERC20} from "@aragon/osx/token/ERC20/governance/GovernanceWrappedERC20.sol";
 import {PluginRepoFactory} from "@aragon/osx/framework/plugin/repo/PluginRepoFactory.sol";
+import {hashHelpers, PluginSetupRef} from "@aragon/osx/framework/plugin/setup/PluginSetupProcessorHelpers.sol";
 import {PluginRepo} from "@aragon/osx/framework/plugin/repo/PluginRepo.sol";
 import {DAOFactory} from "@aragon/osx/framework/dao/DAOFactory.sol";
 
@@ -31,8 +33,8 @@ contract LockToVetoPluginScript is Script {
                 "LockToVetoPlugin",
                 address(pluginSetup),
                 msg.sender,
-                0x00, // TODO: Give these actual values on prod
-                0x00
+                "", // TODO: Give these actual values on prod
+                ""
             );
 
         // 3. Defining the DAO Settings
@@ -40,16 +42,21 @@ contract LockToVetoPluginScript is Script {
             address(0),
             "",
             "locktovetodao1", // This should be changed on each deployment
-            address(0)
+            ""
         );
 
         // 4. Defining the plugin settings
-        LockToVetoPlugin.OptimisticGovernanceSettings votingSettings = LockToVetoPluginSetup
+        LockToVetoPlugin.OptimisticGovernanceSettings
+            memory votingSettings = LockToVetoPlugin
                 .OptimisticGovernanceSettings(200000, 60 * 60, 0);
-        LockToVetoPluginSetup.TokenSettings tokenSettings = LockToVetoPluginSetup
-                .TokenSettings(tokenAddress, "", "");
+        LockToVetoPluginSetup.TokenSettings
+            memory tokenSettings = LockToVetoPluginSetup.TokenSettings(
+                tokenAddress,
+                "",
+                ""
+            );
 
-        uint256[] memory holders = new uint256[](0);
+        address[] memory holders = new address[](0);
         uint256[] memory amounts = new uint256[](0);
         GovernanceERC20.MintSettings memory mintSettings = GovernanceERC20
             .MintSettings(holders, amounts);

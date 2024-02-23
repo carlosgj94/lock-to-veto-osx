@@ -57,9 +57,6 @@ contract LockToVetoPluginSetup is PluginSetup {
     /// @param length The array length of passed helpers.
     error WrongHelpersArrayLength(uint256 length);
 
-    /// @notice Thrown when trying to prepare an installation with no proposers.
-    error NoProposers();
-
     /// @notice The contract constructor deploying the plugin implementation contract and receiving the governance token base contracts to clone from.
     /// @param _governanceERC20Base The base `GovernanceERC20` contract to create clones from.
     /// @param _governanceWrappedERC20Base The base `GovernanceWrappedERC20` contract to create clones from.
@@ -86,8 +83,7 @@ contract LockToVetoPluginSetup is PluginSetup {
             LockToVetoPlugin.OptimisticGovernanceSettings memory votingSettings,
             TokenSettings memory tokenSettings,
             // only used for GovernanceERC20 (when token is not passed)
-            GovernanceERC20.MintSettings memory mintSettings,
-
+            GovernanceERC20.MintSettings memory mintSettings
         ) = decodeInstallationParams(_installParameters);
 
         address token = tokenSettings.addr;
@@ -128,9 +124,7 @@ contract LockToVetoPluginSetup is PluginSetup {
         // Prepare permissions
         PermissionLib.MultiTargetPermission[]
             memory permissions = new PermissionLib.MultiTargetPermission[](
-                tokenSettings.addr != address(0)
-                    ? 3 + proposers.length
-                    : 4 + proposers.length
+                tokenSettings.addr != address(0) ? 3 : 4
             );
 
         // Request the permissions to be granted
@@ -163,22 +157,6 @@ contract LockToVetoPluginSetup is PluginSetup {
             condition: PermissionLib.NO_CONDITION,
             permissionId: DAO(payable(_dao)).EXECUTE_PERMISSION_ID()
         });
-
-        // Proposers can create proposals
-        for (uint256 i = 0; i < proposers.length; ) {
-            permissions[3 + i] = PermissionLib.MultiTargetPermission({
-                operation: PermissionLib.Operation.Grant,
-                where: plugin,
-                who: proposers[i],
-                condition: PermissionLib.NO_CONDITION,
-                permissionId: optimisticTokenVotingPluginBase
-                    .PROPOSER_PERMISSION_ID()
-            });
-
-            unchecked {
-                i++;
-            }
-        }
 
         preparedSetupData.helpers = helpers;
         preparedSetupData.permissions = permissions;
@@ -231,8 +209,6 @@ contract LockToVetoPluginSetup is PluginSetup {
             condition: PermissionLib.NO_CONDITION,
             permissionId: DAO(payable(_dao)).EXECUTE_PERMISSION_ID()
         });
-
-        // Note: It no longer matters if proposers can still create proposals
     }
 
     /// @inheritdoc IPluginSetup
@@ -245,16 +221,9 @@ contract LockToVetoPluginSetup is PluginSetup {
         LockToVetoPlugin.OptimisticGovernanceSettings calldata _votingSettings,
         TokenSettings calldata _tokenSettings,
         // only used for GovernanceERC20 (when a token is not passed)
-        GovernanceERC20.MintSettings calldata _mintSettings,
-        address[] calldata _proposers
+        GovernanceERC20.MintSettings calldata _mintSettings
     ) external pure returns (bytes memory) {
-        return
-            abi.encode(
-                _votingSettings,
-                _tokenSettings,
-                _mintSettings,
-                _proposers
-            );
+        return abi.encode(_votingSettings, _tokenSettings, _mintSettings);
     }
 
     /// @notice Decodes the given byte array into the original installation parameters
@@ -267,17 +236,15 @@ contract LockToVetoPluginSetup is PluginSetup {
             LockToVetoPlugin.OptimisticGovernanceSettings memory votingSettings,
             TokenSettings memory tokenSettings,
             // only used for GovernanceERC20 (when token is not passed)
-            GovernanceERC20.MintSettings memory mintSettings,
-            address[] memory proposers
+            GovernanceERC20.MintSettings memory mintSettings
         )
     {
-        (votingSettings, tokenSettings, mintSettings, proposers) = abi.decode(
+        (votingSettings, tokenSettings, mintSettings) = abi.decode(
             _data,
             (
                 LockToVetoPlugin.OptimisticGovernanceSettings,
                 TokenSettings,
-                GovernanceERC20.MintSettings,
-                address[]
+                GovernanceERC20.MintSettings
             )
         );
     }
