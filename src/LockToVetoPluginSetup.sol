@@ -15,20 +15,19 @@ import {PluginSetup, IPluginSetup} from "@aragon/osx/framework/plugin/setup/Plug
 import {GovernanceERC20} from "@aragon/osx/token/ERC20/governance/GovernanceERC20.sol";
 import {GovernanceWrappedERC20} from "@aragon/osx/token/ERC20/governance/GovernanceWrappedERC20.sol";
 import {IGovernanceWrappedERC20} from "@aragon/osx/token/ERC20/governance/IGovernanceWrappedERC20.sol";
-import {OptimisticTokenVotingPlugin} from "./OptimisticTokenVotingPlugin.sol";
+import {LockToVetoPlugin} from "./LockToVetoPlugin.sol";
 
-/// @title OptimisticTokenVotingPluginSetup
+/// @title LockToVetoPluginSetup
 /// @author Aragon Association - 2022-2023
 /// @notice The setup contract of the `OptimisticTokenVoting` plugin.
 /// @custom:security-contact sirt@aragon.org
-contract OptimisticTokenVotingPluginSetup is PluginSetup {
+contract LockToVetoPluginSetup is PluginSetup {
     using Address for address;
     using Clones for address;
     using ERC165Checker for address;
 
-    /// @notice The address of the `OptimisticTokenVotingPlugin` base contract.
-    OptimisticTokenVotingPlugin
-        private immutable optimisticTokenVotingPluginBase;
+    /// @notice The address of the `LockToVetoPlugin` base contract.
+    LockToVetoPlugin private immutable optimisticTokenVotingPluginBase;
 
     /// @notice The address of the `GovernanceERC20` base contract.
     address public immutable governanceERC20Base;
@@ -68,7 +67,7 @@ contract OptimisticTokenVotingPluginSetup is PluginSetup {
         GovernanceERC20 _governanceERC20Base,
         GovernanceWrappedERC20 _governanceWrappedERC20Base
     ) {
-        optimisticTokenVotingPluginBase = new OptimisticTokenVotingPlugin();
+        optimisticTokenVotingPluginBase = new LockToVetoPlugin();
         governanceERC20Base = address(_governanceERC20Base);
         governanceWrappedERC20Base = address(_governanceWrappedERC20Base);
     }
@@ -84,8 +83,7 @@ contract OptimisticTokenVotingPluginSetup is PluginSetup {
         // Decode `_installParameters` to extract the params needed for deploying and initializing `OptimisticTokenVoting` plugin,
         // and the required helpers
         (
-            OptimisticTokenVotingPlugin.OptimisticGovernanceSettings
-                memory votingSettings,
+            LockToVetoPlugin.OptimisticGovernanceSettings memory votingSettings,
             TokenSettings memory tokenSettings,
             // only used for GovernanceERC20 (when token is not passed)
             GovernanceERC20.MintSettings memory mintSettings,
@@ -149,7 +147,7 @@ contract OptimisticTokenVotingPluginSetup is PluginSetup {
         plugin = createERC1967Proxy(
             address(optimisticTokenVotingPluginBase),
             abi.encodeCall(
-                OptimisticTokenVotingPlugin.initialize,
+                LockToVetoPlugin.initialize,
                 (IDAO(_dao), votingSettings, IVotesUpgradeable(token))
             )
         );
@@ -307,8 +305,7 @@ contract OptimisticTokenVotingPluginSetup is PluginSetup {
 
     /// @notice Encodes the given installation parameters into a byte array
     function encodeInstallationParams(
-        OptimisticTokenVotingPlugin.OptimisticGovernanceSettings
-            calldata _votingSettings,
+        LockToVetoPlugin.OptimisticGovernanceSettings calldata _votingSettings,
         TokenSettings calldata _tokenSettings,
         // only used for GovernanceERC20 (when a token is not passed)
         GovernanceERC20.MintSettings calldata _mintSettings,
@@ -330,8 +327,7 @@ contract OptimisticTokenVotingPluginSetup is PluginSetup {
         public
         pure
         returns (
-            OptimisticTokenVotingPlugin.OptimisticGovernanceSettings
-                memory votingSettings,
+            LockToVetoPlugin.OptimisticGovernanceSettings memory votingSettings,
             TokenSettings memory tokenSettings,
             // only used for GovernanceERC20 (when token is not passed)
             GovernanceERC20.MintSettings memory mintSettings,
@@ -341,7 +337,7 @@ contract OptimisticTokenVotingPluginSetup is PluginSetup {
         (votingSettings, tokenSettings, mintSettings, proposers) = abi.decode(
             _data,
             (
-                OptimisticTokenVotingPlugin.OptimisticGovernanceSettings,
+                LockToVetoPlugin.OptimisticGovernanceSettings,
                 TokenSettings,
                 GovernanceERC20.MintSettings,
                 address[]

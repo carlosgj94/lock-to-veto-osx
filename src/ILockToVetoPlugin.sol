@@ -5,10 +5,10 @@ pragma solidity ^0.8.17;
 import {IVotesUpgradeable} from "@openzeppelin/contracts-upgradeable/governance/utils/IVotesUpgradeable.sol";
 import {IDAO} from "@aragon/osx/core/dao/IDAO.sol";
 
-/// @title IOptimisticTokenVoting
+/// @title ILockToVetoPlugin
 /// @author Aragon Association - 2022-2023
 /// @notice The interface of an optimistic governance plugin.
-interface IOptimisticTokenVoting {
+interface ILockToVetoPlugin {
     /// @notice getter function for the voting token.
     /// @dev public function also useful for registering interfaceId and for distinguishing from majority voting interface.
     /// @return The token used for voting.

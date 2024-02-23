@@ -8,20 +8,20 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 import {IVotesUpgradeable} from "@openzeppelin/contracts-upgradeable/governance/utils/IVotesUpgradeable.sol";
 import {IMembership} from "@aragon/osx/core/plugin/membership/IMembership.sol";
-import {IOptimisticTokenVoting} from "./IOptimisticTokenVoting.sol";
+import {ILockToVetoPlugin} from "./ILockToVetoPlugin.sol";
 
 import {ProposalUpgradeable} from "@aragon/osx/core/plugin/proposal/ProposalUpgradeable.sol";
 import {PluginUUPSUpgradeable} from "@aragon/osx/core/plugin/PluginUUPSUpgradeable.sol";
 import {RATIO_BASE, _applyRatioCeiled, RatioOutOfBounds} from "@aragon/osx/plugins/utils/Ratio.sol";
 import {IDAO} from "@aragon/osx/core/dao/IDAO.sol";
 
-/// @title OptimisticTokenVotingPlugin
+/// @title LockToVetoPlugin
 /// @author Aragon Association - 2023
 /// @notice The abstract implementation of optimistic majority plugins.
 ///
-/// @dev This contract implements the `IOptimisticTokenVoting` interface.
-contract OptimisticTokenVotingPlugin is
-    IOptimisticTokenVoting,
+/// @dev This contract implements the `ILockToVetoPlugin` interface.
+contract LockToVetoPlugin is
+    ILockToVetoPlugin,
     IMembership,
     Initializable,
     ERC165Upgradeable,
@@ -179,17 +179,17 @@ contract OptimisticTokenVotingPlugin is
     {
         return
             _interfaceId == OPTIMISTIC_GOVERNANCE_INTERFACE_ID ||
-            _interfaceId == type(IOptimisticTokenVoting).interfaceId ||
+            _interfaceId == type(ILockToVetoPlugin).interfaceId ||
             _interfaceId == type(IMembership).interfaceId ||
             super.supportsInterface(_interfaceId);
     }
 
-    /// @inheritdoc IOptimisticTokenVoting
+    /// @inheritdoc ILockToVetoPlugin
     function getVotingToken() public view returns (IVotesUpgradeable) {
         return votingToken;
     }
 
-    /// @inheritdoc IOptimisticTokenVoting
+    /// @inheritdoc ILockToVetoPlugin
     function totalVotingPower(
         uint256 _blockNumber
     ) public view returns (uint256) {
@@ -204,7 +204,7 @@ contract OptimisticTokenVotingPlugin is
             IERC20Upgradeable(address(votingToken)).balanceOf(_account) > 0;
     }
 
-    /// @inheritdoc IOptimisticTokenVoting
+    /// @inheritdoc ILockToVetoPlugin
     function hasVetoed(
         uint256 _proposalId,
         address _voter
@@ -212,7 +212,7 @@ contract OptimisticTokenVotingPlugin is
         return proposals[_proposalId].vetoVoters[_voter];
     }
 
-    /// @inheritdoc IOptimisticTokenVoting
+    /// @inheritdoc ILockToVetoPlugin
     function canVeto(
         uint256 _proposalId,
         address _voter
@@ -242,7 +242,7 @@ contract OptimisticTokenVotingPlugin is
         return true;
     }
 
-    /// @inheritdoc IOptimisticTokenVoting
+    /// @inheritdoc ILockToVetoPlugin
     function canExecute(
         uint256 _proposalId
     ) public view virtual returns (bool) {
@@ -264,7 +264,7 @@ contract OptimisticTokenVotingPlugin is
         return true;
     }
 
-    /// @inheritdoc IOptimisticTokenVoting
+    /// @inheritdoc ILockToVetoPlugin
     function isMinVetoRatioReached(
         uint256 _proposalId
     ) public view virtual returns (bool) {
@@ -273,17 +273,17 @@ contract OptimisticTokenVotingPlugin is
         return proposal_.vetoTally >= proposal_.parameters.minVetoVotingPower;
     }
 
-    /// @inheritdoc IOptimisticTokenVoting
+    /// @inheritdoc ILockToVetoPlugin
     function minVetoRatio() public view virtual returns (uint32) {
         return governanceSettings.minVetoRatio;
     }
 
-    /// @inheritdoc IOptimisticTokenVoting
+    /// @inheritdoc ILockToVetoPlugin
     function minDuration() public view virtual returns (uint64) {
         return governanceSettings.minDuration;
     }
 
-    /// @inheritdoc IOptimisticTokenVoting
+    /// @inheritdoc ILockToVetoPlugin
     function minProposerVotingPower() public view virtual returns (uint256) {
         return governanceSettings.minProposerVotingPower;
     }
@@ -321,7 +321,7 @@ contract OptimisticTokenVotingPlugin is
         allowFailureMap = proposal_.allowFailureMap;
     }
 
-    /// @inheritdoc IOptimisticTokenVoting
+    /// @inheritdoc ILockToVetoPlugin
     function createProposal(
         bytes calldata _metadata,
         IDAO.Action[] calldata _actions,
@@ -394,7 +394,7 @@ contract OptimisticTokenVotingPlugin is
         }
     }
 
-    /// @inheritdoc IOptimisticTokenVoting
+    /// @inheritdoc ILockToVetoPlugin
     function veto(uint256 _proposalId) public virtual {
         address _voter = _msgSender();
 
@@ -426,7 +426,7 @@ contract OptimisticTokenVotingPlugin is
         });
     }
 
-    /// @inheritdoc IOptimisticTokenVoting
+    /// @inheritdoc ILockToVetoPlugin
     function execute(uint256 _proposalId) public virtual {
         if (!canExecute(_proposalId)) {
             revert ProposalExecutionForbidden(_proposalId);
