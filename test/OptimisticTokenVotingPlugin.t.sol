@@ -366,12 +366,12 @@ contract LockToVetoPluginTest is Test {
 
     function test_TotalVotingPowerReturnsTheRightSupply() public {
         assertEq(
-            plugin.totalVotingPower(block.number - 1),
+            plugin.totalVotingPower(),
             votingToken.getPastTotalSupply(block.number - 1),
             "Incorrect total voting power"
         );
         assertEq(
-            plugin.totalVotingPower(block.number - 1),
+            plugin.totalVotingPower(),
             10 ether,
             "Incorrect total voting power"
         );
@@ -407,12 +407,12 @@ contract LockToVetoPluginTest is Test {
         );
 
         assertEq(
-            plugin.totalVotingPower(block.number - 1),
+            plugin.totalVotingPower(),
             votingToken.getPastTotalSupply(block.number - 1),
             "Incorrect total voting power"
         );
         assertEq(
-            plugin.totalVotingPower(block.number - 1),
+            plugin.totalVotingPower(),
             15 ether,
             "Incorrect total voting power"
         );

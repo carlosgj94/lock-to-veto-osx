@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.17;
 
-import {IVotesUpgradeable} from "@openzeppelin/contracts-upgradeable/governance/utils/IVotesUpgradeable.sol";
+import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {IDAO} from "@aragon/osx/core/dao/IDAO.sol";
 
 /// @title ILockToVetoPlugin
@@ -12,14 +12,11 @@ interface ILockToVetoPlugin {
     /// @notice getter function for the voting token.
     /// @dev public function also useful for registering interfaceId and for distinguishing from majority voting interface.
     /// @return The token used for voting.
-    function getVotingToken() external view returns (IVotesUpgradeable);
+    function getVotingToken() external view returns (IERC20Upgradeable);
 
     /// @notice Returns the total voting power checkpointed for a specific block number.
-    /// @param _blockNumber The block number.
     /// @return The total voting power.
-    function totalVotingPower(
-        uint256 _blockNumber
-    ) external view returns (uint256);
+    function totalVotingPower() external view returns (uint256);
 
     /// @notice Returns the veto ratio parameter stored in the optimistic governance settings.
     /// @return The veto ratio parameter.
@@ -64,13 +61,23 @@ interface ILockToVetoPlugin {
 
     /// @notice Registers the veto for the given proposal.
     /// @param _proposalId The ID of the proposal.
-    function veto(uint256 _proposalId) external;
+    /// @param _amountToLock The amount the user wants to lock
+    function veto(uint256 _proposalId, uint256 _amountToLock) external;
 
     /// @notice Returns whether the account has voted for the proposal.  Note, that this does not check if the account has vetoing power.
     /// @param _proposalId The ID of the proposal.
     /// @param _account The account address to be checked.
     /// @return The whether the given account has vetoed the given proposal.
     function hasVetoed(
+        uint256 _proposalId,
+        address _account
+    ) external view returns (bool);
+
+    /// @notice Returns whether the account has claimed their lock for the proposal.  Note, that this does not check if the account has vetoing power.
+    /// @param _proposalId The ID of the proposal.
+    /// @param _account The account address to be checked.
+    /// @return The whether the given account has claimed their lock in the given proposal.
+    function hasClaimedLock(
         uint256 _proposalId,
         address _account
     ) external view returns (bool);
@@ -90,4 +97,9 @@ interface ILockToVetoPlugin {
     /// @notice Executes a proposal.
     /// @param _proposalId The ID of the proposal to be executed.
     function execute(uint256 _proposalId) external;
+
+    /// @notice Transfers back the amount a vetoer has locked
+    /// @param _proposalId The ID of the proposal to claim
+    /// @param _member The address of the person to claim their assets
+    function claimLock(uint256 _proposalId, address _member) external;
 }

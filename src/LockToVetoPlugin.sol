@@ -4,9 +4,9 @@ pragma solidity ^0.8.17;
 
 import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {IERC20PermitUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20PermitUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
-import {IVotesUpgradeable} from "@openzeppelin/contracts-upgradeable/governance/utils/IVotesUpgradeable.sol";
 import {IMembership} from "@aragon/osx/core/plugin/membership/IMembership.sol";
 import {ILockToVetoPlugin} from "./ILockToVetoPlugin.sol";
 
@@ -51,7 +51,8 @@ contract LockToVetoPlugin is
         bool executed;
         ProposalParameters parameters;
         uint256 vetoTally;
-        mapping(address => bool) vetoVoters;
+        mapping(address => uint256) vetoVoters;
+        mapping(address => bool) votersClaimedLock;
         IDAO.Action[] actions;
         uint256 allowFailureMap;
     }
@@ -84,7 +85,7 @@ contract LockToVetoPlugin is
             this.updateOptimisticGovernanceSettings.selector;
 
     /// @notice An [OpenZeppelin `Votes`](https://docs.openzeppelin.com/contracts/4.x/api/governance#Votes) compatible contract referencing the token being used for voting.
-    IVotesUpgradeable private votingToken;
+    IERC20Upgradeable private votingToken;
 
     /// @notice The struct storing the governance settings.
     OptimisticGovernanceSettings private governanceSettings;
@@ -110,6 +111,16 @@ contract LockToVetoPlugin is
         uint256 indexed proposalId,
         address indexed voter,
         uint256 votingPower
+    );
+
+    /// @notice Emitted when a lock has been claimed.
+    /// @param proposalId The ID of the proposal.
+    /// @param voter The voter receibing the lock.
+    /// @param amount The quantity of tokens they are receiving.
+    event LockClaimed(
+        uint256 indexed proposalId,
+        address indexed voter,
+        uint256 amount
     );
 
     /// @notice Thrown if a date is out of bounds.
@@ -147,6 +158,9 @@ contract LockToVetoPlugin is
     /// @notice Thrown if the voting power is zero
     error NoVotingPower();
 
+    /// @notice Thrown if user cannot claim their lock yet
+    error ClaimLockForbidden(uint256 proposalId, address account);
+
     /// @notice Initializes the component to be used by inheriting contracts.
     /// @dev This method is required to support [ERC-1822](https://eips.ethereum.org/EIPS/eip-1822).
     /// @param _dao The IDAO interface of the associated DAO.
@@ -155,7 +169,7 @@ contract LockToVetoPlugin is
     function initialize(
         IDAO _dao,
         OptimisticGovernanceSettings calldata _governanceSettings,
-        IVotesUpgradeable _token
+        IERC20Upgradeable _token
     ) external initializer {
         __PluginUUPSUpgradeable_init(_dao);
 
@@ -185,23 +199,19 @@ contract LockToVetoPlugin is
     }
 
     /// @inheritdoc ILockToVetoPlugin
-    function getVotingToken() public view returns (IVotesUpgradeable) {
+    function getVotingToken() public view returns (IERC20Upgradeable) {
         return votingToken;
     }
 
     /// @inheritdoc ILockToVetoPlugin
-    function totalVotingPower(
-        uint256 _blockNumber
-    ) public view returns (uint256) {
-        return votingToken.getPastTotalSupply(_blockNumber);
+    function totalVotingPower() public view returns (uint256) {
+        return votingToken.totalSupply();
     }
 
     /// @inheritdoc IMembership
     function isMember(address _account) external view returns (bool) {
         // A member must own at least one token or have at least one token delegated to her/him.
-        return
-            votingToken.getVotes(_account) > 0 ||
-            IERC20Upgradeable(address(votingToken)).balanceOf(_account) > 0;
+        return votingToken.balanceOf(_account) > 0;
     }
 
     /// @inheritdoc ILockToVetoPlugin
@@ -209,7 +219,15 @@ contract LockToVetoPlugin is
         uint256 _proposalId,
         address _voter
     ) public view returns (bool) {
-        return proposals[_proposalId].vetoVoters[_voter];
+        return proposals[_proposalId].vetoVoters[_voter] > 0;
+    }
+
+    /// @inheritdoc ILockToVetoPlugin
+    function hasClaimedLock(
+        uint256 _proposalId,
+        address _voter
+    ) public view returns (bool) {
+        return proposals[_proposalId].votersClaimedLock[_voter];
     }
 
     /// @inheritdoc ILockToVetoPlugin
@@ -221,21 +239,6 @@ contract LockToVetoPlugin is
 
         // The proposal vote hasn't started or has already ended.
         if (!_isProposalOpen(proposal_)) {
-            return false;
-        }
-
-        // The voter already vetoed.
-        if (proposal_.vetoVoters[_voter]) {
-            return false;
-        }
-
-        // The voter has no voting power.
-        if (
-            votingToken.getPastVotes(
-                _voter,
-                proposal_.parameters.snapshotBlock
-            ) == 0
-        ) {
             return false;
         }
 
@@ -336,11 +339,7 @@ contract LockToVetoPlugin is
             if (minProposerVotingPower_ != 0) {
                 // Because of the checks in `OptimisticTokenVotingSetup`, we can assume that `votingToken` is an [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token.
                 if (
-                    votingToken.getVotes(_msgSender()) <
-                    minProposerVotingPower_ &&
-                    IERC20Upgradeable(address(votingToken)).balanceOf(
-                        _msgSender()
-                    ) <
+                    votingToken.balanceOf(_msgSender()) <
                     minProposerVotingPower_
                 ) {
                     revert ProposalCreationForbidden(_msgSender());
@@ -351,12 +350,6 @@ contract LockToVetoPlugin is
         uint256 snapshotBlock;
         unchecked {
             snapshotBlock = block.number - 1; // The snapshot block must be mined already to protect the transaction against backrunning transactions causing census changes.
-        }
-
-        uint256 totalVotingPower_ = totalVotingPower(snapshotBlock);
-
-        if (totalVotingPower_ == 0) {
-            revert NoVotingPower();
         }
 
         (_startDate, _endDate) = _validateProposalDates(_startDate, _endDate);
@@ -377,7 +370,7 @@ contract LockToVetoPlugin is
         proposal_.parameters.endDate = _endDate;
         proposal_.parameters.snapshotBlock = snapshotBlock.toUint64();
         proposal_.parameters.minVetoVotingPower = _applyRatioCeiled(
-            totalVotingPower_,
+            totalVotingPower(),
             minVetoRatio()
         );
 
@@ -394,8 +387,30 @@ contract LockToVetoPlugin is
         }
     }
 
+    function vetoPermit(
+        uint256 _proposalId,
+        uint256 _amountToLock,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) public virtual {
+        address _voter = _msgSender();
+
+        IERC20PermitUpgradeable(address(votingToken)).permit(
+            _voter,
+            address(this),
+            _amountToLock,
+            deadline,
+            v,
+            r,
+            s
+        );
+        veto(_proposalId, _amountToLock);
+    }
+
     /// @inheritdoc ILockToVetoPlugin
-    function veto(uint256 _proposalId) public virtual {
+    function veto(uint256 _proposalId, uint256 _amountToLock) public virtual {
         address _voter = _msgSender();
 
         if (!canVeto(_proposalId, _voter)) {
@@ -405,24 +420,20 @@ contract LockToVetoPlugin is
             });
         }
 
+        votingToken.transferFrom(_voter, address(this), _amountToLock);
+
+        // Not checking if the voter already voted, since that's fine
+
         Proposal storage proposal_ = proposals[_proposalId];
 
-        // This could re-enter, though we can assume the governance token is not malicious
-        uint256 votingPower = votingToken.getPastVotes(
-            _voter,
-            proposal_.parameters.snapshotBlock
-        );
-
-        // Not checking if the voter already voted, since canVeto() above already did
-
         // Write the updated tally.
-        proposal_.vetoTally += votingPower;
-        proposal_.vetoVoters[_voter] = true;
+        proposal_.vetoTally += _amountToLock;
+        proposal_.vetoVoters[_voter] += _amountToLock;
 
         emit VetoCast({
             proposalId: _proposalId,
             voter: _voter,
-            votingPower: votingPower
+            votingPower: _amountToLock
         });
     }
 
@@ -440,6 +451,30 @@ contract LockToVetoPlugin is
             proposals[_proposalId].actions,
             proposals[_proposalId].allowFailureMap
         );
+    }
+
+    /// @inheritdoc ILockToVetoPlugin
+    function claimLock(uint256 _proposalId, address _member) external {
+        Proposal storage proposal_ = proposals[_proposalId];
+
+        if (
+            !_isProposalEnded(proposal_) ||
+            !hasVetoed(_proposalId, _member) ||
+            hasClaimedLock(_proposalId, _member)
+           ) {
+            revert ClaimLockForbidden(_proposalId, _member);
+        }
+
+        // Check remain lock to send to the user
+        uint256 amountClaimed = proposal_.vetoVoters[_member];
+        proposal_.votersClaimedLock[_member] = true;
+        votingToken.transferFrom(
+            address(this), 
+            _member, 
+            amountClaimed
+        );
+
+        emit LockClaimed(_proposalId, _member, amountClaimed);
     }
 
     /// @notice Updates the governance settings.
