@@ -331,7 +331,7 @@ contract LockToVetoPlugin is
         uint256 _allowFailureMap,
         uint64 _startDate,
         uint64 _endDate
-    ) external auth(PROPOSER_PERMISSION_ID) returns (uint256 proposalId) {
+    ) external returns (uint256 proposalId) {
         // Check that either `_msgSender` owns enough tokens or has enough voting power from being a delegatee.
         {
             uint256 minProposerVotingPower_ = minProposerVotingPower();
@@ -461,18 +461,14 @@ contract LockToVetoPlugin is
             !_isProposalEnded(proposal_) ||
             !hasVetoed(_proposalId, _member) ||
             hasClaimedLock(_proposalId, _member)
-           ) {
+        ) {
             revert ClaimLockForbidden(_proposalId, _member);
         }
 
         // Check remain lock to send to the user
         uint256 amountClaimed = proposal_.vetoVoters[_member];
         proposal_.votersClaimedLock[_member] = true;
-        votingToken.transferFrom(
-            address(this), 
-            _member, 
-            amountClaimed
-        );
+        votingToken.transferFrom(address(this), _member, amountClaimed);
 
         emit LockClaimed(_proposalId, _member, amountClaimed);
     }

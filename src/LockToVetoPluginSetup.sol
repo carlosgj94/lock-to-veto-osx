@@ -87,12 +87,8 @@ contract LockToVetoPluginSetup is PluginSetup {
             TokenSettings memory tokenSettings,
             // only used for GovernanceERC20 (when token is not passed)
             GovernanceERC20.MintSettings memory mintSettings,
-            address[] memory proposers
-        ) = decodeInstallationParams(_installParameters);
 
-        if (proposers.length == 0) {
-            revert NoProposers();
-        }
+        ) = decodeInstallationParams(_installParameters);
 
         address token = tokenSettings.addr;
 
