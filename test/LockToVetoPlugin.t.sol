@@ -142,11 +142,7 @@ contract LockToVetoPluginTest is Test {
                 )
             )
         );
-        assertEq(
-            plugin.totalVotingPower(),
-            10 ether,
-            "Incorrect token supply"
-        );
+        assertEq(plugin.totalVotingPower(), 10 ether, "Incorrect token supply");
         assertEq(
             plugin.minVetoRatio(),
             uint32(RATIO_BASE / 10),
@@ -214,11 +210,7 @@ contract LockToVetoPluginTest is Test {
                 )
             )
         );
-        assertEq(
-            plugin.totalVotingPower(),
-            10 ether,
-            "Incorrect token supply"
-        );
+        assertEq(plugin.totalVotingPower(), 10 ether, "Incorrect token supply");
 
         // Different minProposerVotingPower
         settings.minProposerVotingPower = 1 ether;
@@ -982,6 +974,7 @@ contract LockToVetoPluginTest is Test {
         );
         vm.warp(startDate + 1);
 
+        votingToken.approve(address(plugin), 1);
         plugin.veto(proposalId, 1);
 
         assertEq(
@@ -1088,6 +1081,8 @@ contract LockToVetoPluginTest is Test {
                 alice
             )
         );
+
+        votingToken.approve(address(plugin), 1);
         plugin.veto(proposalId + 200, 1);
     }
 
@@ -1112,6 +1107,7 @@ contract LockToVetoPluginTest is Test {
                 alice
             )
         );
+        votingToken.approve(address(plugin), 1);
         plugin.veto(proposalId, 1);
         assertEq(
             plugin.hasVetoed(proposalId, alice),
@@ -1121,6 +1117,7 @@ contract LockToVetoPluginTest is Test {
 
         // Started
         vm.warp(startDate + 1);
+        votingToken.approve(address(plugin), 1);
         plugin.veto(proposalId, 1);
         assertEq(
             plugin.hasVetoed(proposalId, alice),
@@ -1148,6 +1145,7 @@ contract LockToVetoPluginTest is Test {
             false,
             "Alice should not have vetoed"
         );
+        votingToken.approve(address(plugin), 1);
         plugin.veto(proposalId, 1);
         assertEq(
             plugin.hasVetoed(proposalId, alice),
@@ -1162,6 +1160,7 @@ contract LockToVetoPluginTest is Test {
                 alice
             )
         );
+        votingToken.approve(address(plugin), 1);
         plugin.veto(proposalId, 1);
         assertEq(
             plugin.hasVetoed(proposalId, alice),
@@ -1192,6 +1191,7 @@ contract LockToVetoPluginTest is Test {
                 alice
             )
         );
+        votingToken.approve(address(plugin), 1);
         plugin.veto(proposalId, 1);
         assertEq(
             plugin.hasVetoed(proposalId, alice),
@@ -1226,6 +1226,7 @@ contract LockToVetoPluginTest is Test {
                 bob
             )
         );
+        votingToken.approve(address(plugin), 1);
         plugin.veto(proposalId, 1);
         assertEq(
             plugin.hasVetoed(proposalId, bob),
@@ -1237,6 +1238,7 @@ contract LockToVetoPluginTest is Test {
         vm.startPrank(alice);
 
         // Alice owns tokens
+        votingToken.approve(address(plugin), 1);
         plugin.veto(proposalId, 1);
         assertEq(
             plugin.hasVetoed(proposalId, alice),
@@ -1264,6 +1266,7 @@ contract LockToVetoPluginTest is Test {
         (, , , uint256 tally1, , ) = plugin.getProposal(proposalId);
         assertEq(tally1, 0, "Tally should be zero");
 
+        votingToken.approve(address(plugin), 1);
         plugin.veto(proposalId, 1);
         assertEq(
             plugin.hasVetoed(proposalId, alice),
@@ -1289,8 +1292,10 @@ contract LockToVetoPluginTest is Test {
         );
         vm.warp(startDate + 1);
 
+        votingToken.approve(address(plugin), 1);
+
         vm.expectEmit();
-        emit VetoCast(proposalId, alice, 10 ether);
+        emit VetoCast(proposalId, alice, 1);
         plugin.veto(proposalId, 1);
     }
 
@@ -1314,6 +1319,7 @@ contract LockToVetoPluginTest is Test {
             false,
             "Alice should not have vetoed"
         );
+        votingToken.approve(address(plugin), 1);
         plugin.veto(proposalId, 1);
         assertEq(
             plugin.hasVetoed(proposalId, alice),
@@ -1350,6 +1356,7 @@ contract LockToVetoPluginTest is Test {
             false,
             "The proposal shouldn't be executable"
         );
+        votingToken.approve(address(plugin), 1);
         plugin.veto(proposalId, 1);
 
         assertEq(
@@ -1381,6 +1388,7 @@ contract LockToVetoPluginTest is Test {
 
         vm.warp(startDate + 1);
 
+        votingToken.approve(address(plugin), 1);
         plugin.veto(proposalId, 1);
         assertEq(
             plugin.canExecute(proposalId),
@@ -1537,6 +1545,7 @@ contract LockToVetoPluginTest is Test {
             "The veto threshold shouldn't be met"
         );
         // Alice vetoes 24%
+        votingToken.approve(address(plugin), 1);
         plugin.veto(proposalId, 1);
 
         assertEq(
