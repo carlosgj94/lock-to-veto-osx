@@ -11,8 +11,8 @@ import {hashHelpers, PluginSetupRef} from "@aragon/osx/framework/plugin/setup/Pl
 import {PluginRepo} from "@aragon/osx/framework/plugin/repo/PluginRepo.sol";
 import {DAOFactory} from "@aragon/osx/framework/dao/DAOFactory.sol";
 
-contract LockToVetoPluginScript is Script {
-    function setUp() public {
+contract Deploy is Script {
+    function run() public {
         address governanceERC20Base = vm.envAddress("GOVERNANCE_ERC20_BASE");
         address governanceWrappedERC20Base = vm.envAddress(
             "GOVERNANCE_WRAPPED_ERC20_BASE"
@@ -20,6 +20,10 @@ contract LockToVetoPluginScript is Script {
         address pluginRepoFactory = vm.envAddress("PLUGIN_REPO_FACTORY");
         DAOFactory daoFactory = DAOFactory(vm.envAddress("DAO_FACTORY"));
         address tokenAddress = vm.envAddress("TOKEN_ADDRESS");
+
+        // 0. Setting up foundry
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        vm.startBroadcast(deployerPrivateKey);
 
         // 1. Deploying the Plugin Setup
         LockToVetoPluginSetup pluginSetup = new LockToVetoPluginSetup(
@@ -30,11 +34,11 @@ contract LockToVetoPluginScript is Script {
         // 2. Publishing it in the Aragon OSx Protocol
         PluginRepo pluginRepo = PluginRepoFactory(pluginRepoFactory)
             .createPluginRepoWithFirstVersion(
-                "LockToVetoPlugin",
+                "locktovetoplugin1",
                 address(pluginSetup),
                 msg.sender,
-                "", // TODO: Give these actual values on prod
-                ""
+                "0x00", // TODO: Give these actual values on prod
+                "0x00"
             );
 
         // 3. Defining the DAO Settings
@@ -48,7 +52,7 @@ contract LockToVetoPluginScript is Script {
         // 4. Defining the plugin settings
         LockToVetoPlugin.OptimisticGovernanceSettings
             memory votingSettings = LockToVetoPlugin
-                .OptimisticGovernanceSettings(200000, 60 * 60, 0);
+                .OptimisticGovernanceSettings(200000, 60 * 60 * 24 * 4, 0);
         LockToVetoPluginSetup.TokenSettings
             memory tokenSettings = LockToVetoPluginSetup.TokenSettings(
                 tokenAddress,
@@ -77,9 +81,7 @@ contract LockToVetoPluginScript is Script {
 
         // 5. Deploying the DAO
         daoFactory.createDao(daoSettings, pluginSettings);
-    }
 
-    function run() public {
-        vm.broadcast();
+        vm.stopBroadcast();
     }
 }

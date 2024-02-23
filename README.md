@@ -251,7 +251,11 @@ $ anvil
 ### Deploy
 
 ```shell
-$ forge script script/Example.s.sol:ExampleScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+# To load the variables in the .env file
+$ source .env
+
+# To deploy and verify our contract
+$ forge script script/LockToVetoPlugin.s.sol:Deploy --rpc-url $SEPOLIA_RPC_URL --broadcast --verify -vvvv
 ```
 
 ### Cast
