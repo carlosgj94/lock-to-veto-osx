@@ -26,7 +26,6 @@ contract LockToVetoPluginSetupTest is Test {
     LockToVetoPlugin.OptimisticGovernanceSettings votingSettings;
     LockToVetoPluginSetup.TokenSettings tokenSettings;
     GovernanceERC20.MintSettings mintSettings;
-    address[] proposers;
 
     address alice = address(0xa11ce);
 
@@ -85,8 +84,6 @@ contract LockToVetoPluginSetupTest is Test {
             receivers: new address[](0),
             amounts: new uint256[](0)
         });
-        proposers = new address[](1);
-        proposers[0] = address(0x1234567890);
     }
 
     function test_ShouldEncodeInstallationParams_Default() public {
@@ -94,8 +91,7 @@ contract LockToVetoPluginSetupTest is Test {
         bytes memory output = pluginSetup.encodeInstallationParams(
             votingSettings,
             tokenSettings,
-            mintSettings,
-            proposers
+            mintSettings
         );
 
         bytes
@@ -113,8 +109,7 @@ contract LockToVetoPluginSetupTest is Test {
         bytes memory output = pluginSetup.encodeInstallationParams(
             votingSettings,
             tokenSettings,
-            mintSettings,
-            proposers
+            mintSettings
         );
 
         bytes
@@ -132,8 +127,7 @@ contract LockToVetoPluginSetupTest is Test {
         bytes memory output = pluginSetup.encodeInstallationParams(
             votingSettings,
             tokenSettings,
-            mintSettings,
-            proposers
+            mintSettings
         );
 
         bytes
@@ -155,8 +149,7 @@ contract LockToVetoPluginSetupTest is Test {
         bytes memory output = pluginSetup.encodeInstallationParams(
             votingSettings,
             tokenSettings,
-            mintSettings,
-            proposers
+            mintSettings
         );
 
         bytes
@@ -166,14 +159,11 @@ contract LockToVetoPluginSetupTest is Test {
 
     function test_ShouldEncodeInstallationParams_4() public {
         // Custom 4
-        proposers = new address[](1);
-        proposers[0] = address(0x567890);
 
         bytes memory output = pluginSetup.encodeInstallationParams(
             votingSettings,
             tokenSettings,
-            mintSettings,
-            proposers
+            mintSettings
         );
 
         bytes
@@ -202,16 +192,11 @@ contract LockToVetoPluginSetupTest is Test {
             receivers: receivers,
             amounts: amounts
         });
-        proposers = new address[](2);
-        proposers[0] = address(0x3456);
-        proposers[1] = address(0x7890);
-
         bytes memory _installationParams = pluginSetup.encodeInstallationParams(
                 votingSettings,
                 tokenSettings,
                 // only used for GovernanceERC20 (when a token is not passed)
-                mintSettings,
-                proposers
+                mintSettings
             );
 
         // Decode
@@ -219,8 +204,7 @@ contract LockToVetoPluginSetupTest is Test {
             LockToVetoPlugin.OptimisticGovernanceSettings
                 memory _votingSettings,
             LockToVetoPluginSetup.TokenSettings memory _tokenSettings,
-            GovernanceERC20.MintSettings memory _mintSettings,
-            address[] memory _proposers
+            GovernanceERC20.MintSettings memory _mintSettings
         ) = pluginSetup.decodeInstallationParams(_installationParams);
 
         // Voting
@@ -272,11 +256,6 @@ contract LockToVetoPluginSetupTest is Test {
         assertEq(_mintSettings.amounts.length, 2, "Incorrect amounts.length");
         assertEq(_mintSettings.amounts[0], 2000, "Incorrect amounts[0]");
         assertEq(_mintSettings.amounts[1], 5000, "Incorrect amounts[1]");
-
-        // Proposers
-        assertEq(_proposers.length, 2, "Incorrect proposers.length");
-        assertEq(_proposers[0], address(0x3456), "Incorrect proposers[0]");
-        assertEq(_proposers[1], address(0x7890), "Incorrect proposers[1]");
     }
 
     function test_PrepareInstallationReturnsTheProperPermissions_Default()
@@ -286,8 +265,7 @@ contract LockToVetoPluginSetupTest is Test {
             votingSettings,
             tokenSettings,
             // only used for GovernanceERC20 (when a token is not passed)
-            mintSettings,
-            proposers
+            mintSettings
         );
 
         (
@@ -303,7 +281,7 @@ contract LockToVetoPluginSetupTest is Test {
         assertEq(_preparedSetupData.helpers.length, 1, "One helper expected");
         assertEq(
             _preparedSetupData.permissions.length,
-            3 + 1, // base + proposers
+            3, // base
             "Incorrect permission length"
         );
         // 1
@@ -351,15 +329,6 @@ contract LockToVetoPluginSetupTest is Test {
             uint256(PermissionLib.Operation.Grant),
             "Incorrect operation"
         );
-        assertEq(_preparedSetupData.permissions[3].where, _plugin);
-        assertEq(_preparedSetupData.permissions[3].who, address(proposers[0]));
-        assertEq(_preparedSetupData.permissions[3].condition, address(0));
-        assertEq(
-            _preparedSetupData.permissions[3].permissionId,
-            keccak256("PROPOSER_PERMISSION")
-        );
-
-        // no more: no minted token
     }
 
     function test_PrepareInstallationReturnsTheProperPermissions_UseToken()
@@ -375,16 +344,12 @@ contract LockToVetoPluginSetupTest is Test {
             name: "",
             symbol: ""
         });
-        proposers = new address[](2);
-        proposers[0] = address(0x3456);
-        proposers[1] = address(0x7890);
 
         bytes memory installationParams = pluginSetup.encodeInstallationParams(
             votingSettings,
             tokenSettings,
             // only used for GovernanceERC20 (when a token is not passed)
-            mintSettings,
-            proposers
+            mintSettings
         );
 
         (
@@ -400,7 +365,7 @@ contract LockToVetoPluginSetupTest is Test {
         assertEq(_preparedSetupData.helpers.length, 1, "One helper expected");
         assertEq(
             _preparedSetupData.permissions.length,
-            3 + 2, // base + proposers
+            3, // base
             "Incorrect permission length"
         );
         // 1
@@ -448,28 +413,6 @@ contract LockToVetoPluginSetupTest is Test {
             uint256(PermissionLib.Operation.Grant),
             "Incorrect operation"
         );
-        assertEq(_preparedSetupData.permissions[3].where, _plugin);
-        assertEq(_preparedSetupData.permissions[3].who, address(proposers[0]));
-        assertEq(_preparedSetupData.permissions[3].condition, address(0));
-        assertEq(
-            _preparedSetupData.permissions[3].permissionId,
-            keccak256("PROPOSER_PERMISSION")
-        );
-        // proposer 2
-        assertEq(
-            uint256(_preparedSetupData.permissions[4].operation),
-            uint256(PermissionLib.Operation.Grant),
-            "Incorrect operation"
-        );
-        assertEq(_preparedSetupData.permissions[4].where, _plugin);
-        assertEq(_preparedSetupData.permissions[4].who, address(proposers[1]));
-        assertEq(_preparedSetupData.permissions[4].condition, address(0));
-        assertEq(
-            _preparedSetupData.permissions[4].permissionId,
-            keccak256("PROPOSER_PERMISSION")
-        );
-
-        // no more: no minted token
     }
 
     function test_PrepareInstallationReturnsTheProperPermissions_MintToken()
@@ -495,16 +438,11 @@ contract LockToVetoPluginSetupTest is Test {
             receivers: receivers,
             amounts: amounts
         });
-        proposers = new address[](2);
-        proposers[0] = address(0x3456);
-        proposers[1] = address(0x7890);
-
         bytes memory installationParams = pluginSetup.encodeInstallationParams(
             votingSettings,
             tokenSettings,
             // only used for GovernanceERC20 (when a token is not passed)
-            mintSettings,
-            proposers
+            mintSettings
         );
 
         (
@@ -520,7 +458,7 @@ contract LockToVetoPluginSetupTest is Test {
         assertEq(_preparedSetupData.helpers.length, 1, "One helper expected");
         assertEq(
             _preparedSetupData.permissions.length,
-            3 + 2 + 1, // base + proposers
+            3, // base
             "Incorrect permission length"
         );
         // 1
@@ -562,32 +500,6 @@ contract LockToVetoPluginSetupTest is Test {
             _preparedSetupData.permissions[2].permissionId,
             keccak256("EXECUTE_PERMISSION")
         );
-        // proposer 1
-        assertEq(
-            uint256(_preparedSetupData.permissions[3].operation),
-            uint256(PermissionLib.Operation.Grant),
-            "Incorrect operation"
-        );
-        assertEq(_preparedSetupData.permissions[3].where, _plugin);
-        assertEq(_preparedSetupData.permissions[3].who, address(proposers[0]));
-        assertEq(_preparedSetupData.permissions[3].condition, address(0));
-        assertEq(
-            _preparedSetupData.permissions[3].permissionId,
-            keccak256("PROPOSER_PERMISSION")
-        );
-        // proposer 2
-        assertEq(
-            uint256(_preparedSetupData.permissions[4].operation),
-            uint256(PermissionLib.Operation.Grant),
-            "Incorrect operation"
-        );
-        assertEq(_preparedSetupData.permissions[4].where, _plugin);
-        assertEq(_preparedSetupData.permissions[4].who, address(proposers[1]));
-        assertEq(_preparedSetupData.permissions[4].condition, address(0));
-        assertEq(
-            _preparedSetupData.permissions[4].permissionId,
-            keccak256("PROPOSER_PERMISSION")
-        );
     }
 
     function test_PrepareUninstallationReturnsTheProperPermissions_1() public {
@@ -595,8 +507,7 @@ contract LockToVetoPluginSetupTest is Test {
         bytes memory installationParams = pluginSetup.encodeInstallationParams(
             votingSettings,
             tokenSettings,
-            mintSettings,
-            proposers
+            mintSettings
         );
         (
             address _dummyPlugin,
@@ -673,8 +584,7 @@ contract LockToVetoPluginSetupTest is Test {
         bytes memory installationParams = pluginSetup.encodeInstallationParams(
             votingSettings,
             tokenSettings,
-            mintSettings,
-            proposers
+            mintSettings
         );
         (
             address _dummyPlugin,
@@ -761,8 +671,7 @@ contract LockToVetoPluginSetupTest is Test {
             votingSettings,
             tokenSettings,
             // only used for GovernanceERC20 (when a token is not passed)
-            mintSettings,
-            proposers
+            mintSettings
         );
         (
             ,
@@ -812,8 +721,7 @@ contract LockToVetoPluginSetupTest is Test {
         bytes memory installationParams = pluginSetup.encodeInstallationParams(
             votingSettings,
             tokenSettings,
-            mintSettings,
-            proposers
+            mintSettings
         );
         (
             ,
