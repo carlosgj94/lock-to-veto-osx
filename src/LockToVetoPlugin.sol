@@ -468,7 +468,7 @@ contract LockToVetoPlugin is
         // Check remain lock to send to the user
         uint256 amountClaimed = proposal_.vetoVoters[_member];
         proposal_.votersClaimedLock[_member] = true;
-        votingToken.transferFrom(address(this), _member, amountClaimed);
+        votingToken.transfer(_member, amountClaimed);
 
         emit LockClaimed(_proposalId, _member, amountClaimed);
     }
